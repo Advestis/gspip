@@ -33,13 +33,15 @@ function install() {
 
   versions=$VERSION_TO_GET
   if [ "$versions" == "" ] ; then
+
     for item in $(gcsls) ; do
+      if ! [[ "$item" == *".tar.gz" ]] ; then continue ; fi
+      version=$(get_version "$item")
       if [[ "$version" == *"latest"* ]] ; then
         thefile="$PACKAGE-$version.tar.gz"
         break
       fi
 
-      version=$(get_version "$item")
       versions="$versions"$'\n'"$version"
     done
 
@@ -58,6 +60,10 @@ function install() {
   echo "$SKIP""Will install package $PACKAGE from $PACKAGE_LOCATION$thefile"
 
   if ! gsutil cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then exit 1 ; fi
+  if ! [ -f "/tmp/$thefile" ] ; then
+    echo "No file downloaded!"
+    exit 1
+  fi
   if ! pip install "/tmp/$thefile" ; then rm "/tmp/$thefile" ; fi
   rm "/tmp/$thefile"
 }
