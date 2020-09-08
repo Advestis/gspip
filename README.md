@@ -21,7 +21,10 @@ gspip install adutils
 
 This will look for the last version of AdUtils stored on *gs://pypi_server_sand/adutils/adutils-\*.tar.gz*
 To uninstall a package installed this way, you can either use normal `pip uninstall adutils` or use `gspip uninstall
- adutils` 
+ adutils`.
+ 
+If the package you are trying to install **is not on GCS**, then the program will use the standard pip command. So you
+can use gspip to install any package. 
 
 You can also specify a version :
 
@@ -41,6 +44,12 @@ gspip install "adutils>=0.11.53"
 If the package is already installed, gspip will say "requirements already satisfied", unless you specified the
  *--upgrade* option (**BEFORE** *install* : `gspip --upgrade install package`). In that case it will fetch the most
   recent version from GCS. If you already have the newest version, it will still say "requirements already satisfied".
+
+You can also install from a file : 
+
+```
+gspip install requirements.txt
+```
 
 ## For developpers
 

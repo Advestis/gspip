@@ -101,7 +101,11 @@ function install_from_file() {
     p=$(echo "$p" | cut -d"<" -f1)
     p=$(echo "$p" | cut -d">" -f1)
     if [ "$(echo "$packages_on_gcs" | grep "$p")" == "" ] ; then
-      pip install "$line"
+      if [ "$UPGRADE" == "yes" ] ; then
+        pip install --upgrade "$line"
+      else
+        pip install "$line"
+      fi
     else
       PACKAGE="$line"
       install
@@ -115,7 +119,11 @@ function install() {
   format_package
 
   if [ "$(echo "$packages_on_gcs" | grep "$PACKAGE")" == "" ] ; then
-    pip install "$PACKAGE$comparator$VERSION_TO_GET"
+    if [ "$UPGRADE" == "yes" ] ; then
+      pip install --upgrade "$PACKAGE$comparator$VERSION_TO_GET"
+    else
+      pip install "$PACKAGE$comparator$VERSION_TO_GET"
+    fi
     exit 0
   fi
 
