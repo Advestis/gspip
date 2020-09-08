@@ -18,6 +18,10 @@ done
 COMMAND=$1
 PACKAGE=$2
 
+packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
+packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
+packages_on_gcs=${packages_on_gcs//"/"/}
+
 function gcsls() {
   gsutil ls "$PACKAGE_LOCATION" 2> /dev/null
 }
@@ -50,23 +54,23 @@ function format_package() {
   if [[ "$PACKAGE" == *"=="* ]] ; then
     VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"=" -f3)"
     PACKAGE="$(echo "$PACKAGE" | cut -d"=" -f1)"
-    comparator="equal"
+    comparator="=="
   elif [[ "$PACKAGE" == *">="* ]] ; then
     VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"=" -f2)"
     PACKAGE="$(echo "$PACKAGE" | cut -d">" -f1)"
-    comparator="supequal"
+    comparator=">="
   elif [[ "$PACKAGE" == *"<="* ]] ; then
     VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"=" -f2)"
     PACKAGE="$(echo "$PACKAGE" | cut -d"<" -f1)"
-    comparator="infequal"
+    comparator="<="
   elif [[ "$PACKAGE" == *">"* ]] ; then
     VERSION_TO_GET="$(echo "$PACKAGE" | cut -d">" -f2)"
     PACKAGE="$(echo "$PACKAGE" | cut -d">" -f1)"
-    comparator="sup"
+    comparator=">"
   elif [[ "$PACKAGE" == *"<"* ]] ; then
     VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"<" -f2)"
     PACKAGE="$(echo "$PACKAGE" | cut -d"<" -f1)"
-    comparator="inf"
+    comparator="<"
   else
     echo "Unknown comparator in $PACKAGE"
     exit 1
@@ -90,10 +94,6 @@ function newer_than() {
 function install_from_file() {
   FILE="$PACKAGE"
 
-  packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
-  packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
-  packages_on_gcs=${packages_on_gcs//"/"/}
-
   echo "Will install packages from file $FILE"
   for line in $(more "$FILE") ; do
     p=$(echo "$line" | cut -d"=" -f1)
@@ -112,6 +112,11 @@ function install_from_file() {
 function install() {
 
   format_package
+
+  if ! echo "$packages_on_gcs" | grep "$PACKAGE" ; then
+    pip install "$PACKAGE$comparator$VERSION_TO_GET"
+    exit 0
+  fi
 
   versions=""
   is_installed=$(package_installed)
@@ -144,10 +149,10 @@ function install() {
     fi
 
   else
-    if [ "$comparator" == "equal" ] ; then
+    if [ "$comparator" == "==" ] ; then
       version_to_install=$VERSION_TO_GET
 
-    elif [ "$comparator" == "supequal" ] ; then
+    elif [ "$comparator" == ">=" ] ; then
       version_to_install=""
       for v in $versions ; do
         if [ "$v" == "$VERSION_TO_GET" ] ; then
@@ -162,7 +167,7 @@ function install() {
         fi
       done
 
-    elif [ "$comparator" == "infequal" ] ; then
+    elif [ "$comparator" == "<=" ] ; then
       version_to_install=""
       for v in $versions ; do
         if [ "$v" == "$VERSION_TO_GET" ] ; then
@@ -177,7 +182,7 @@ function install() {
         fi
       done
 
-    elif [ "$comparator" == "sup" ] ; then
+    elif [ "$comparator" == ">" ] ; then
       version_to_install=""
       for v in $versions ; do
         if [ "$v" == "$VERSION_TO_GET" ] ; then
@@ -191,7 +196,7 @@ function install() {
         fi
       done
 
-    elif [ "$comparator" == "inf" ] ; then
+    elif [ "$comparator" == "<" ] ; then
       version_to_install=""
       for v in $versions ; do
         if [ "$v" == "$VERSION_TO_GET" ] ; then
