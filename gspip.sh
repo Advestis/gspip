@@ -87,6 +87,28 @@ function newer_than() {
   return 1
 }
 
+function install_from_file() {
+  FILE="$PACKAGE"
+
+  packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
+  packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
+  packages_on_gcs=${packages_on_gcs//"/"/}
+
+  echo "Will install packages from file $FILE"
+  for line in $(more "$FILE") ; do
+    p=$(echo "$line" | cut -d"=" -f1)
+    p=$(echo "$p" | cut -d"<" -f1)
+    p=$(echo "$p" | cut -d">" -f1)
+    if ! echo "$packages_on_gcs" | grep "$p" ; then
+      pip install "$line"
+    else
+      PACKAGE="$line"
+      install
+    fi
+  done
+
+}
+
 function install() {
 
   format_package
@@ -97,7 +119,7 @@ function install() {
 
   if [ "$is_installed" == "yes" ] && [ "$UPGRADE" == "no" ] && [ "$comparator" == "" ] ; then
     echo "Requirement already satisfied: $PACKAGE ($local_version)"
-    exit 0
+    return 0
   fi
 
   # List all version from GCS
@@ -113,7 +135,7 @@ function install() {
 
     if [ "$version_to_install" == "" ] ; then
       echo "$SKIP""No package named $PACKAGE found!"
-      exit 1
+      return 1
     fi
 
     if [ "$is_installed" == "yes" ] ; then
@@ -134,7 +156,7 @@ function install() {
         elif newer_than "$v" "$VERSION_TO_GET" ; then
           if [ "$version_to_install" == "" ] ; then
             version_to_install=$v
-          elif newer_then "$version_to_install" "$v" ; then
+          elif newer_than "$version_to_install" "$v" ; then
             version_to_install=$v
           fi
         fi
@@ -185,27 +207,27 @@ function install() {
 
     else
       echo "Unknown comparator $comparator"
-      exit 1
+      return 1
     fi
   fi
 
   if [ "$version_to_install" == "" ] ; then
     echo "No version satisfying the requirements found."
-    exit 1
+    return 1
   fi
   if [ "$version_to_install" == "$local_version" ] ; then
     echo "Requirement already satisfied: $PACKAGE ($local_version)"
-    exit 0
+    return 0
   fi
 
   thefile="$PACKAGE-$version_to_install.tar.gz"
 
   echo "$SKIP""Will install package $PACKAGE from $PACKAGE_LOCATION$thefile"
 
-  if ! gsutil cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then exit 1 ; fi
+  if ! gsutil cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then return 1 ; fi
   if ! [ -f "/tmp/$thefile" ] ; then
     echo "No file downloaded!"
-    exit 1
+    return 1
   fi
   pip install "/tmp/$thefile"
   rm "/tmp/$thefile"
@@ -267,7 +289,11 @@ function push() {
 }
 
 if [ "$COMMAND" == "install" ] ; then
-  install
+  if [ -f "$PACKAGE" ] ; then
+    install_from_file
+  else
+    install
+  fi
 elif [ "$COMMAND" == "uninstall" ] || [ "$COMMAND" == "remove" ] ; then
   uninstall
 elif [ "$COMMAND" == "push" ]  ; then
