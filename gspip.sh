@@ -49,6 +49,7 @@ function installed_version() {
 
 function format_package() {
   if ! [[ "$PACKAGE" == *"="* ]] && ! [[ "$PACKAGE" == *">"* ]] && ! [[ "$PACKAGE" == *"<"* ]] ; then
+    PACKAGE_LOCATION="gs://$BUCKET/$PACKAGE/"
     return 0
   fi
   if [[ "$PACKAGE" == *"=="* ]] ; then
@@ -99,7 +100,7 @@ function install_from_file() {
     p=$(echo "$line" | cut -d"=" -f1)
     p=$(echo "$p" | cut -d"<" -f1)
     p=$(echo "$p" | cut -d">" -f1)
-    if ! echo "$packages_on_gcs" | grep "$p" ; then
+    if [ "$(echo "$packages_on_gcs" | grep "$p")" == "" ] ; then
       pip install "$line"
     else
       PACKAGE="$line"
@@ -113,7 +114,7 @@ function install() {
 
   format_package
 
-  if ! echo "$packages_on_gcs" | grep "$PACKAGE" ; then
+  if [ "$(echo "$packages_on_gcs" | grep "$PACKAGE")" == "" ] ; then
     pip install "$PACKAGE$comparator$VERSION_TO_GET"
     exit 0
   fi
@@ -136,7 +137,7 @@ function install() {
   # Dit not specify a version to get, so get the latest
   if [ "$VERSION_TO_GET" == "" ] ; then
 
-    version_to_install=$(echo "$SKIP""$versions" | sort --version-sort | tail -n 1)
+    version_to_install=$(echo "$versions" | sort --version-sort | tail -n 1)
 
     if [ "$version_to_install" == "" ] ; then
       echo "$SKIP""No package named $PACKAGE found!"
