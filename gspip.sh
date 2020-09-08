@@ -2,6 +2,7 @@
 
 BUCKET="pypi_server_sand"
 SKIP=""
+UPGRADE="no"
 VERSION_TO_GET=""
 
 while true; do
@@ -9,6 +10,7 @@ while true; do
     -b | --bucket) BUCKET="$2"; shift 2 ;;
     -s | --skip) SKIP="$2"; shift 2 ;;
     -v | --version) VERSION_TO_GET="$2"; shift 2 ;;
+    -u | --upgrade) UPGRADE="yes"; shift 1 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -22,16 +24,38 @@ function gcsls() {
   gsutil ls "$PACKAGE_LOCATION" 2> /dev/null
 }
 
-function get_version {
+function get_version() {
   v=$1
   v=${v//"$PACKAGE_LOCATION$PACKAGE-"/}
   v=${v//".tar.gz"/}
   echo "$SKIP""$v"
 }
 
+function package_installed() {
+  if [ "$(pip freeze | grep "$PACKAGE")" == "" ] ; then
+    echo "no"
+    return 0
+  fi
+  echo "yes"
+}
+
+function installed_version() {
+  if [ "$(package_installed)" == "no" ] ; then return 0 ; fi
+  local_version=$(pip freeze | grep "$PACKAGE" | cut -d"=" -f 3)
+  echo "$local_version"
+}
+
 function install() {
 
   versions=$VERSION_TO_GET
+  is_installed=$(package_installed)
+  local_version=$(installed_version)
+
+  if [ "$is_installed" == "yes" ] && [ "$UPGRADE" == "no" ] ; then
+    echo "Requirement already satisfied: $PACKAGE ($local_version)"
+    exit 0
+  fi
+
   if [ "$versions" == "" ] ; then
 
     for item in $(gcsls) ; do
@@ -52,6 +76,15 @@ function install() {
       exit 1
     fi
 
+    if [ "$is_installed" == "yes" ] ; then
+      loc_and_remote_versions="$local_version"$'\n'"$latest_version"
+      newest=$(echo "$loc_and_remote_versions" | sort --version-sort | tail -n 1)
+      if [ "$newest" == "$local_version" ] ; then
+        echo "Requirement already satisfied: $PACKAGE ($local_version)"
+        exit 0
+      fi
+    fi
+
     thefile="$PACKAGE-$latest_version.tar.gz"
   else
     thefile="$PACKAGE-$versions.tar.gz"
@@ -64,7 +97,7 @@ function install() {
     echo "No file downloaded!"
     exit 1
   fi
-  if ! pip install "/tmp/$thefile" ; then rm "/tmp/$thefile" ; fi
+  pip install "/tmp/$thefile"
   rm "/tmp/$thefile"
 }
 
