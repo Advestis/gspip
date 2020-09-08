@@ -26,8 +26,21 @@ To uninstall a package installed this way, you can either use normal `pip uninst
 You can also specify a version :
 
 ```
-gspip install adutils -v 0.11.53
+gspip install adutils==0.11.53
 ```
+
+or
+
+```
+gspip install "adutils>=0.11.53"
+```
+
+**WATCH OUT** : if you specify a version using < or >, do not forget to quote the package and version, otherwise
+ < or > will be interpreted as flux redirections.
+
+If the package is already installed, gspip will say "requirements already satisfied", unless you specified the
+ *--upgrade* option (**BEFORE** *install* : `gspip --upgrade install package`). In that case it will fetch the most
+  recent version from GCS. If you already have the newest version, it will still say "requirements already satisfied".
 
 ## For developpers
 

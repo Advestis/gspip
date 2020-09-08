@@ -9,7 +9,6 @@ while true; do
   case "$1" in
     -b | --bucket) BUCKET="$2"; shift 2 ;;
     -s | --skip) SKIP="$2"; shift 2 ;;
-    -v | --version) VERSION_TO_GET="$2"; shift 2 ;;
     -u | --upgrade) UPGRADE="yes"; shift 1 ;;
     -- ) shift; break ;;
     * ) break ;;
@@ -18,7 +17,6 @@ done
 
 COMMAND=$1
 PACKAGE=$2
-PACKAGE_LOCATION="gs://$BUCKET/$PACKAGE/"
 
 function gcsls() {
   gsutil ls "$PACKAGE_LOCATION" 2> /dev/null
@@ -45,50 +43,162 @@ function installed_version() {
   echo "$local_version"
 }
 
+function format_package() {
+  if ! [[ "$PACKAGE" == *"="* ]] && ! [[ "$PACKAGE" == *">"* ]] && ! [[ "$PACKAGE" == *"<"* ]] ; then
+    return 0
+  fi
+  if [[ "$PACKAGE" == *"=="* ]] ; then
+    VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"=" -f3)"
+    PACKAGE="$(echo "$PACKAGE" | cut -d"=" -f1)"
+    comparator="equal"
+  elif [[ "$PACKAGE" == *">="* ]] ; then
+    VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"=" -f2)"
+    PACKAGE="$(echo "$PACKAGE" | cut -d">" -f1)"
+    comparator="supequal"
+  elif [[ "$PACKAGE" == *"<="* ]] ; then
+    VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"=" -f2)"
+    PACKAGE="$(echo "$PACKAGE" | cut -d"<" -f1)"
+    comparator="infequal"
+  elif [[ "$PACKAGE" == *">"* ]] ; then
+    VERSION_TO_GET="$(echo "$PACKAGE" | cut -d">" -f2)"
+    PACKAGE="$(echo "$PACKAGE" | cut -d">" -f1)"
+    comparator="sup"
+  elif [[ "$PACKAGE" == *"<"* ]] ; then
+    VERSION_TO_GET="$(echo "$PACKAGE" | cut -d"<" -f2)"
+    PACKAGE="$(echo "$PACKAGE" | cut -d"<" -f1)"
+    comparator="inf"
+  else
+    echo "Unknown comparator in $PACKAGE"
+    exit 1
+  fi
+  PACKAGE_LOCATION="gs://$BUCKET/$PACKAGE/"
+}
+
+function latest_version() {
+  echo "$1" | sort --version-sort | tail -n 1
+}
+
+# Check if arg 1 is newer than arg 2
+function newer_than() {
+  vs="$1"$'\n'"$2"
+  if [ "$(latest_version "$vs")" == "$1" ] ; then
+    return 0
+  fi
+  return 1
+}
+
 function install() {
 
-  versions=$VERSION_TO_GET
+  format_package
+
+  versions=""
   is_installed=$(package_installed)
   local_version=$(installed_version)
 
-  if [ "$is_installed" == "yes" ] && [ "$UPGRADE" == "no" ] ; then
+  if [ "$is_installed" == "yes" ] && [ "$UPGRADE" == "no" ] && [ "$comparator" == "" ] ; then
     echo "Requirement already satisfied: $PACKAGE ($local_version)"
     exit 0
   fi
 
-  if [ "$versions" == "" ] ; then
+  # List all version from GCS
+  for item in $(gcsls) ; do
+    if ! [[ "$item" == *".tar.gz" ]] ; then continue ; fi
+    versions="$versions"$'\n'"$(get_version "$item")"
+  done
 
-    for item in $(gcsls) ; do
-      if ! [[ "$item" == *".tar.gz" ]] ; then continue ; fi
-      version=$(get_version "$item")
-      if [[ "$version" == *"latest"* ]] ; then
-        thefile="$PACKAGE-$version.tar.gz"
-        break
-      fi
+  # Dit not specify a version to get, so get the latest
+  if [ "$VERSION_TO_GET" == "" ] ; then
 
-      versions="$versions"$'\n'"$version"
-    done
+    version_to_install=$(echo "$SKIP""$versions" | sort --version-sort | tail -n 1)
 
-    latest_version=$(echo "$SKIP""$versions" | sort --version-sort | tail -n 1)
-
-    if [ "$latest_version" == "" ] ; then
+    if [ "$version_to_install" == "" ] ; then
       echo "$SKIP""No package named $PACKAGE found!"
       exit 1
     fi
 
     if [ "$is_installed" == "yes" ] ; then
-      loc_and_remote_versions="$local_version"$'\n'"$latest_version"
-      newest=$(echo "$loc_and_remote_versions" | sort --version-sort | tail -n 1)
-      if [ "$newest" == "$local_version" ] ; then
-        echo "Requirement already satisfied: $PACKAGE ($local_version)"
-        exit 0
-      fi
+      loc_and_remote_versions="$local_version"$'\n'"$version_to_install"
+      version_to_install=$(echo "$loc_and_remote_versions" | sort --version-sort | tail -n 1)
     fi
 
-    thefile="$PACKAGE-$latest_version.tar.gz"
   else
-    thefile="$PACKAGE-$versions.tar.gz"
+    if [ "$comparator" == "equal" ] ; then
+      version_to_install=$VERSION_TO_GET
+
+    elif [ "$comparator" == "supequal" ] ; then
+      version_to_install=""
+      for v in $versions ; do
+        if [ "$v" == "$VERSION_TO_GET" ] ; then
+          version_to_install=$VERSION_TO_GET
+          break
+        elif newer_than "$v" "$VERSION_TO_GET" ; then
+          if [ "$version_to_install" == "" ] ; then
+            version_to_install=$v
+          elif newer_then "$version_to_install" "$v" ; then
+            version_to_install=$v
+          fi
+        fi
+      done
+
+    elif [ "$comparator" == "infequal" ] ; then
+      version_to_install=""
+      for v in $versions ; do
+        if [ "$v" == "$VERSION_TO_GET" ] ; then
+          version_to_install=$VERSION_TO_GET
+          break
+        elif newer_than "$VERSION_TO_GET" "$v" ; then
+          if [ "$version_to_install" == "" ] ; then
+            version_to_install=$v
+          elif newer_than "$v" "$version_to_install" ; then
+            version_to_install=$v
+          fi
+        fi
+      done
+
+    elif [ "$comparator" == "sup" ] ; then
+      version_to_install=""
+      for v in $versions ; do
+        if [ "$v" == "$VERSION_TO_GET" ] ; then
+          continue
+        elif newer_than "$v" "$VERSION_TO_GET" ; then
+          if [ "$version_to_install" == "" ] ; then
+            version_to_install=$v
+          elif newer_than "$version_to_install" "$v" ; then
+            version_to_install=$v
+          fi
+        fi
+      done
+
+    elif [ "$comparator" == "inf" ] ; then
+      version_to_install=""
+      for v in $versions ; do
+        if [ "$v" == "$VERSION_TO_GET" ] ; then
+          continue
+        elif newer_than "$VERSION_TO_GET" "$v" ; then
+          if [ "$version_to_install" == "" ] ; then
+            version_to_install=$v
+          elif newer_than "$v" "$version_to_install" ; then
+            version_to_install=$v
+          fi
+        fi
+      done
+
+    else
+      echo "Unknown comparator $comparator"
+      exit 1
+    fi
   fi
+
+  if [ "$version_to_install" == "" ] ; then
+    echo "No version satisfying the requirements found."
+    exit 1
+  fi
+  if [ "$version_to_install" == "$local_version" ] ; then
+    echo "Requirement already satisfied: $PACKAGE ($local_version)"
+    exit 0
+  fi
+
+  thefile="$PACKAGE-$version_to_install.tar.gz"
 
   echo "$SKIP""Will install package $PACKAGE from $PACKAGE_LOCATION$thefile"
 
@@ -99,6 +209,7 @@ function install() {
   fi
   pip install "/tmp/$thefile"
   rm "/tmp/$thefile"
+
 }
 
 function uninstall() {
