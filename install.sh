@@ -7,7 +7,7 @@ SCRIPTPATH="$(
   pwd -P
 )"
 
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' gsutil 2> /dev/null)
+PKG_OK=$(command -v gsutil 2> /dev/null)
 if [ "$PKG_OK" = "" ] ; then
   echo "This program required gsutil to be installed and operationnal."
   exit 1
@@ -29,6 +29,11 @@ if [ ! -d "$HOME/bin" ] ; then
 fi
 
 chmod +x "$SCRIPTPATH/"*
+
+if ! [ -d "$HOME/bin" ] ; then
+  echo "Creating directory $HOME/bin..."
+  mkdir "$HOME/bin"
+fi
 
 echo "Copying files to $HOME/bin..."
 cp "$SCRIPTPATH/gspip.sh" "$HOME/bin/gspip"
