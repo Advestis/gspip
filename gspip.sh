@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BUCKET="pypi_server_sand"
+BUCKET=${PIP_BUCKET}
 SKIP=""
 UPGRADE="no"
 VERSION_TO_GET=""
@@ -13,6 +13,13 @@ while true; do
     -- ) shift; break ;;
     * ) break ;;
   esac
+done
+
+while [ "$BUCKET" == "" ] ; do
+  echo "Bucket was not provided (--bucket argument was not specified, and envvar PIP_BUCKET was not found). Please provide a bucket:"
+  read -r BUCKET
+  echo "If you want gspip to find your bucket automatically, add the following line to your .bashrc:"
+  echo "export PIP_BUCKET=my_bucket_name"
 done
 
 COMMAND=$1
