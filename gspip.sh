@@ -15,19 +15,18 @@ while true; do
   esac
 done
 
-while [ "$BUCKET" == "" ] ; do
-  echo "Bucket was not provided (--bucket argument was not specified, and envvar PIP_BUCKET was not found). Please provide a bucket:"
-  read -r BUCKET
-  echo "If you want gspip to find your bucket automatically, add the following line to your .bashrc:"
-  echo "export PIP_BUCKET=my_bucket_name"
-done
-
 COMMAND=$1
 PACKAGE=$2
 
-packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
-packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
-packages_on_gcs=${packages_on_gcs//"/"/}
+if [ "$COMMAND" == "" ] ; then
+  echo "No command specify. Please provide a command."
+  exit 1
+fi
+
+if [ "$PACKAGE" == "" ] ; then
+  echo "No package specify. Please provide a package."
+  exit 1
+fi
 
 function gcsls() {
   gsutil ls "$PACKAGE_LOCATION" 2> /dev/null
@@ -310,6 +309,15 @@ function push() {
 }
 
 if [ "$COMMAND" == "install" ] ; then
+  while [ "$BUCKET" == "" ] ; do
+    echo "Bucket was not provided (--bucket argument was not specified, and envvar PIP_BUCKET was not found). Please provide a bucket:"
+    read -r BUCKET
+    echo "If you want gspip to find your bucket automatically, add the following line to your .bashrc:"
+    echo "export PIP_BUCKET=my_bucket_name"
+  done
+  packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
+  packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
+  packages_on_gcs=${packages_on_gcs//"/"/}
   if [ -f "$PACKAGE" ] ; then
     install_from_file
   else

@@ -1,25 +1,32 @@
 # GSPIP
 
-This will install a command that works almost like pip, except that it will look for packages on Advestis/s GCS
- bucket named pypi_server_sand
+This will install a command that works almost like pip, except that it will look for packages on GCS. You will need
+ Google Cloud SDK installed and set, for gspip will use the *gsutil* command.
  
 ## Installation
 
-Clone the reposirory, open a terminal and cd to it. Then run
+Clone the repository, open a terminal and cd to it. Then run
 ```
 chmod +x ./install.sh
 ./install.sh
 ```
+This will copy gspip.sh into your $HOME/bin directory under the name gspip
 
 ## Use
 
-To install a package (say, AdUtils), just run
+To install a package (say, *adutils*), just run
 
 ```
-gspip install adutils
+gspip --bucket bucket_name install adutils
 ```
 
-This will look for the last version of AdUtils stored on *gs://pypi_server_sand/adutils/adutils-\*.tar.gz*
+This will look for the last version of *adutils* stored on
+
+ *gs://bucket_name/adutils/adutils-\*.tar.gz*
+
+The bucket name can be omitted. In that case, you will be prompted for it later. You can also add the line
+`PIP_BUCKET=pypi_server_sand` to your .bashrc to automatically detect the bucket name.
+ 
 To uninstall a package installed this way, you can either use normal `pip uninstall adutils` or use `gspip uninstall
  adutils`.
  
