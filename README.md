@@ -12,6 +12,10 @@ chmod +x ./install.sh
 ```
 This will copy gspip.sh into your $HOME/bin directory under the name gspip
 
+Then, open a new terminal and run
+```
+source .profile
+```
 ## Use
 
 To install a package (say, *adutils*), just run
