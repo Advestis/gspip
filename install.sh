@@ -44,5 +44,4 @@ fi
 echo "  Copied gspip"
 
 echo "...successfully copied files."
-
-echo "Before being able to use the program, you need to run 'source $HOME/.profile'"
+source $HOME/.profile
