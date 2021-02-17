@@ -19,12 +19,12 @@ COMMAND=$1
 PACKAGE=$2
 
 if [ "$COMMAND" == "" ] ; then
-  echo "No command specify. Please provide a command."
+  echo "No command specified. Please provide a command."
   exit 1
 fi
 
 if [ "$PACKAGE" == "" ] ; then
-  echo "No package specify. Please provide a package."
+  echo "No package specified. Please provide a package."
   exit 1
 fi
 
@@ -315,6 +315,12 @@ if [ "$COMMAND" == "install" ] ; then
     echo "If you want gspip to find your bucket automatically, add the following line to your .bashrc:"
     echo "export PIP_BUCKET=my_bucket_name"
   done
+
+  if ! gsutil ls gs://$BUCKET/ &> /dev/null ; then
+    echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
+    exit 1
+  fi
+
   packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
   packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
   packages_on_gcs=${packages_on_gcs//"/"/}
@@ -326,6 +332,12 @@ if [ "$COMMAND" == "install" ] ; then
 elif [ "$COMMAND" == "uninstall" ] || [ "$COMMAND" == "remove" ] ; then
   uninstall
 elif [ "$COMMAND" == "push" ]  ; then
+
+  if ! gsutil ls gs://$BUCKET/ &> /dev/null ; then
+    echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
+    exit 1
+  fi
+
   push
 else
   echo "$SKIP""Unknown command $COMMAND"
