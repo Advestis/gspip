@@ -9,12 +9,12 @@ SCRIPTPATH="$(
 
 PKG_OK=$(command -v gsutil 2> /dev/null)
 if [ "$PKG_OK" = "" ] ; then
-  echo "This program required gsutil to be installed and operationnal."
+  echo "This program requires gsutil to be installed and operationnal."
   exit 1
 fi
 
-if ! gsutil ls gs://pypi_server_sand/ &> /dev/null ; then
-  echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
+if ! gsutil ls gs:// &> /dev/null ; then
+  echo "Could not talk to GCS : did you properly set up Google Cloud SDK ? Is your current profile set up on the appropriate project ?"
   exit 1
 fi
 
@@ -44,5 +44,4 @@ fi
 echo "  Copied gspip"
 
 echo "...successfully copied files."
-
-echo "Before being able to use the program, you need to run 'source $HOME/.profile'"
+source $HOME/.profile
