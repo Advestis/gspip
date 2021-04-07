@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BUCKET=${PIP_BUCKET}
+BUCKET=pypi_server_prod
 SKIP=""
 UPGRADE="no"
 VERSION_TO_GET=""
@@ -9,7 +9,7 @@ CRED="-o Credentials:gs_service_key_file=${PATH_TO_CRED}"
 
 while true; do
   case "$1" in
-    -b | --bucket) BUCKET="$2"; shift 2 ;;
+BUCKET=pypi_server_prod
     -s | --skip) SKIP="$2"; shift 2 ;;
     -u | --upgrade) UPGRADE="yes"; shift 1 ;;
     -- ) shift; break ;;
@@ -307,7 +307,7 @@ if [ "$COMMAND" == "install" ] ; then
     echo "Bucket was not provided (--bucket argument was not specified, and envvar PIP_BUCKET was not found). Please provide a bucket:"
     read -r BUCKET
     echo "If you want gspip to find your bucket automatically, add the following line to your .bashrc:"
-    echo "export PIP_BUCKET=my_bucket_name"
+BUCKET=pypi_server_prod
   done
 
   if ! gsutil $CRED ls gs://$BUCKET/ &> /dev/null ; then

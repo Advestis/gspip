@@ -1,13 +1,24 @@
 #!/bin/bash
 
 BUCKET=$1
+PATH_TO_CRED=$2
+CRED="-o Credentials:gs_service_key_file=${PATH_TO_CRED}"
 
 if [ "$BUCKET" != "" ] ; then
   echo "Setting pypi bucket to $BUCKET"
   sed -i "/BUCKET=/c\BUCKET=$BUCKET" gspip.sh
 else
-  echo "You did not specify a bucket name. Rerun the command like that : ./install.sh pypi_bucket_name."
+  echo "You did not specify a bucket name. Rerun the command like that : ./install.sh pypi_bucket_name path_cred."
   echo "Ask your code manager if you do not know the bucket name."
+  exit 1
+fi
+
+if [ "$PATH_TO_CRED" != "" ] ; then
+  echo "Setting PATH_TO_CRED to $PATH_TO_CRED"
+  sed -i "/PATH_TO_CRED=/c\PATH_TO_CRED=$PATH_TO_CRED" gspip.sh
+else
+  echo "You did not specify a path to GCP credentials. Rerun the command like that : ./install.sh pypi_bucket_name path_cred."
+  echo "Ask your code manager if you do not know the path."
   exit 1
 fi
 
@@ -24,8 +35,9 @@ if [ "$PKG_OK" = "" ] ; then
   exit 1
 fi
 
-if ! gsutil ls gs:// &> /dev/null ; then
-  echo "Could not talk to GCS : did you properly set up Google Cloud SDK ? Is your current profile set up on the appropriate project ?"
+if ! gsutil $CRED ls gs://$BUCKET &> /dev/null ; then
+  echo "Could not talk to GCS : did you specify the correct paths and buckets in the arguments of the command ?"
+  echo "I currently have BUCKET=$BUCKET and PATH_TO_CRED=$PATH_TO_CRED."
   exit 1
 fi
 
