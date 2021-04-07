@@ -4,6 +4,8 @@ BUCKET=${PIP_BUCKET}
 SKIP=""
 UPGRADE="no"
 VERSION_TO_GET=""
+PATH_TO_CRED=/media/SERVEUR/_configs/pypi_server_prod_credential.json
+CRED="-o Credentials:gs_service_key_file=${PATH_TO_CRED}"
 
 while true; do
   case "$1" in
@@ -236,7 +238,7 @@ function install() {
 
   echo "$SKIP""Will install package $PACKAGE from $PACKAGE_LOCATION$thefile"
 
-  if ! gsutil cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then return 1 ; fi
+  if ! gsutil $CRED cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then return 1 ; fi
   if ! [ -f "/tmp/$thefile" ] ; then
     echo "No file downloaded!"
     return 1
@@ -294,7 +296,7 @@ function push() {
   fi
 
   echo "$SKIP""Will now push $PACKAGE to gcs."
-  if ! gsutil cp "$thefile" "gs://$BUCKET/$PACKAGE/" ; then
+  if ! gsutil $CRED cp "$thefile" "gs://$BUCKET/$PACKAGE/" ; then
     exit 1
   fi
   if [ -d "dist" ] ; then rm -r dist ; fi
@@ -308,12 +310,12 @@ if [ "$COMMAND" == "install" ] ; then
     echo "export PIP_BUCKET=my_bucket_name"
   done
 
-  if ! gsutil ls gs://$BUCKET/ &> /dev/null ; then
+  if ! gsutil $CRED ls gs://$BUCKET/ &> /dev/null ; then
     echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
     exit 1
   fi
 
-  packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
+  packages_on_gcs=$(gsutil $CRED ls "gs://$BUCKET/")
   packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
   packages_on_gcs=${packages_on_gcs//"/"/}
   if [ -f "$PACKAGE" ] ; then
@@ -325,7 +327,7 @@ elif [ "$COMMAND" == "uninstall" ] || [ "$COMMAND" == "remove" ] ; then
   uninstall
 elif [ "$COMMAND" == "push" ]  ; then
 
-  if ! gsutil ls gs://$BUCKET/ &> /dev/null ; then
+  if ! gsutil $CRED ls gs://$BUCKET/ &> /dev/null ; then
     echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
     exit 1
   fi

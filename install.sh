@@ -1,5 +1,16 @@
 #!/bin/bash
 
+BUCKET=$1
+
+if [ "$BUCKET" != "" ] ; then
+  echo "Setting pypi bucket to $BUCKET"
+  sed -i "/BUCKET=/c\BUCKET=$BUCKET" gspip.sh
+else
+  echo "You did not specify a bucket name. Rerun the command like that : ./install.sh pypi_bucket_name."
+  echo "Ask your code manager if you do not know the bucket name."
+  exit 1
+fi
+
 SCRIPTPATH="$(
   cd "$(dirname "$0")" || {
       echoerr "Could not cd to $(dirname "$0")" ; exit 1
