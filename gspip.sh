@@ -1,13 +1,18 @@
 #!/bin/bash
 
-BUCKET=${PIP_BUCKET}
+BUCKET=""
 SKIP=""
 UPGRADE="no"
 VERSION_TO_GET=""
+PATH_TO_CRED=/media/SERVEUR/_configs/pypi_server_prod_credential.json
+CRED=""
+if [ "$PATH_TO_CRED" != "" ] ; then
+  CRED="-o Credentials:gs_service_key_file=${PATH_TO_CRED}"
+fi
 
 while true; do
   case "$1" in
-    -b | --bucket) BUCKET="$2"; shift 2 ;;
+BUCKET=pypi_server_prod
     -s | --skip) SKIP="$2"; shift 2 ;;
     -u | --upgrade) UPGRADE="yes"; shift 1 ;;
     -- ) shift; break ;;
@@ -236,7 +241,11 @@ function install() {
 
   echo "$SKIP""Will install package $PACKAGE from $PACKAGE_LOCATION$thefile"
 
-  if ! gsutil cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then return 1 ; fi
+  if [ "$CRED" != "" ] ; then
+    if ! gsutil $CRED cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then return 1 ; fi
+  else
+    if ! gsutil cp "$PACKAGE_LOCATION$thefile" "/tmp/$thefile" ; then return 1 ; fi
+  fi
   if ! [ -f "/tmp/$thefile" ] ; then
     echo "No file downloaded!"
     return 1
@@ -274,46 +283,20 @@ function recreate_dist() {
   return 0
 }
 
-function push() {
-
-  PACKAGE=$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]')
-
-  if [ -d dist ] ; then
-    thefile=$(find dist/* | grep ".tar.gz" | head -n 1)
-    if [ "$thefile" == "" ] ; then
-      echo "$SKIP""No .tar.gz in dist. Recreating..."
-      if ! recreate_dist ; then
-        exit 1
-      fi
-    fi
-  else
-    echo "$SKIP""No dist directory. Recreating..."
-    if ! recreate_dist ; then
-      exit 1
-    fi
-  fi
-
-  echo "$SKIP""Will now push $PACKAGE to gcs."
-  if ! gsutil cp "$thefile" "gs://$BUCKET/$PACKAGE/" ; then
-    exit 1
-  fi
-  if [ -d "dist" ] ; then rm -r dist ; fi
-}
-
 if [ "$COMMAND" == "install" ] ; then
   while [ "$BUCKET" == "" ] ; do
     echo "Bucket was not provided (--bucket argument was not specified, and envvar PIP_BUCKET was not found). Please provide a bucket:"
     read -r BUCKET
     echo "If you want gspip to find your bucket automatically, add the following line to your .bashrc:"
-    echo "export PIP_BUCKET=my_bucket_name"
+BUCKET=pypi_server_prod
   done
 
-  if ! gsutil ls gs://$BUCKET/ &> /dev/null ; then
+  if ! gsutil $CRED ls gs://$BUCKET/ &> /dev/null ; then
     echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
     exit 1
   fi
 
-  packages_on_gcs=$(gsutil ls "gs://$BUCKET/")
+  packages_on_gcs=$(gsutil $CRED ls "gs://$BUCKET/")
   packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
   packages_on_gcs=${packages_on_gcs//"/"/}
   if [ -f "$PACKAGE" ] ; then
@@ -323,14 +306,6 @@ if [ "$COMMAND" == "install" ] ; then
   fi
 elif [ "$COMMAND" == "uninstall" ] || [ "$COMMAND" == "remove" ] ; then
   uninstall
-elif [ "$COMMAND" == "push" ]  ; then
-
-  if ! gsutil ls gs://$BUCKET/ &> /dev/null ; then
-    echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
-    exit 1
-  fi
-
-  push
 else
   echo "$SKIP""Unknown command $COMMAND"
 fi
