@@ -114,7 +114,8 @@ function install_from_file() {
     p=$(echo "$p" | cut -d"<" -f1)
     p=$(echo "$p" | cut -d">" -f1)
     if [ "$(echo "$packages_on_gcs" | grep "$p")" == "" ] ; then
-      echo "Package $FILE not found on GCS"
+      echo "Package not found on GCS"
+      return 1
     else
       PACKAGE="$line"
       install
@@ -128,8 +129,8 @@ function install() {
   format_package
 
   if [ "$(echo "$packages_on_gcs" | grep "$PACKAGE")" == "" ] ; then
-    echo "Package $FILE not found on GCS"
-    exit 0
+    echo "Package not found on GCS"
+    return 1
   fi
 
   echo "PACKAGE_LOCATION: $PACKAGE_LOCATION"
@@ -279,9 +280,9 @@ if [ "$COMMAND" == "install" ] ; then
   packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
   packages_on_gcs=${packages_on_gcs//"/"/}
   if [ -f "$PACKAGE" ] ; then
-    install_from_file
+    if ! install_from_file ; then exit 1 ; fi
   else
-    install
+    if ! install ; then exit 1 ; fi
   fi
 elif [ "$COMMAND" == "uninstall" ] || [ "$COMMAND" == "remove" ] ; then
   uninstall
