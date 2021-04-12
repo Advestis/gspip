@@ -8,7 +8,7 @@ cp gspip.sh gspip.sh.tmp
 
 if [ "$BUCKET" != "" ] ; then
   echo "Setting pypi bucket to $BUCKET"
-  sed -i "/BUCKET=/c\BUCKET=$BUCKET" gspip.sh.tmp
+  sed -i "/BUCKET=\"\"/c\BUCKET=$BUCKET" gspip.sh.tmp
 else
   echo "You did not specify a bucket name. Rerun the command like that : ./install.sh pypi_bucket_name path_cred."
   echo "Ask your code manager if you do not know the bucket name."
@@ -17,7 +17,7 @@ fi
 
 if [ "$PATH_TO_CRED" != "" ] ; then
   echo "Setting PATH_TO_CRED to $PATH_TO_CRED"
-  sed -i "/PATH_TO_CRED=/c\PATH_TO_CRED=$PATH_TO_CRED" gspip.sh.tmp
+  sed -i "/PATH_TO_CRED=\"\"/c\PATH_TO_CRED=$PATH_TO_CRED" gspip.sh.tmp
 else
   echo "You did not specify a path to GCP credentials. Rerun the command like that : ./install.sh pypi_bucket_name path_cred."
   echo "Ask your code manager if you do not know the path."
