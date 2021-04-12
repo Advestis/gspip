@@ -36,7 +36,7 @@ if [ "$PACKAGE" == "" ] ; then
 fi
 
 function gcsls() {
-  gsutil ls "$PACKAGE_LOCATION" 2> /dev/null
+  gsutil $CRED ls "$PACKAGE_LOCATION" 2> /dev/null
 }
 
 function get_version() {
@@ -131,6 +131,8 @@ function install() {
     echo "Package $FILE not found on GCS"
     exit 0
   fi
+
+  echo "PACKAGE_LOCATION: $PACKAGE_LOCATION"
 
   versions=""
   is_installed=$(package_installed)
@@ -262,39 +264,14 @@ function uninstall() {
   if ! pip uninstall "$PACKAGE" ; then exit 1 ; fi
 }
 
-function recreate_dist() {
-  if ! [ -f "setup.py" ] ; then
-    echo "$SKIP""Could not find a setup.py file in install any pacakge."
-    return 1
-  fi
-  if ! python setup.py sdist ; then
-    return 1
-  fi
-  if [ -d "build" ] ; then rm -r build ; fi
-  if ls "$PACKAGE".egg-info* &> /dev/null ; then rm -r "$PACKAGE".egg-info* ; fi
-
-  if [ ! -d dist ] ; then
-    echo "$SKIP""Could not create dist ??"
-    return 1
-  fi
-  thefile=$(find dist/* | grep ".tar.gz" | head -n 1)
-  if [ "$thefile" == "" ] ; then
-    echo "$SKIP""No .tar.gz file produced!"
-    return 1
-  fi
-  return 0
-}
-
 if [ "$COMMAND" == "install" ] ; then
-  while [ "$BUCKET" == "" ] ; do
-    echo "Bucket was not provided (--bucket argument was not specified, and envvar PIP_BUCKET was not found). Please provide a bucket:"
-    read -r BUCKET
-    echo "If you want gspip to find your bucket automatically, add the following line to your .bashrc:"
-BUCKET=pypi_server_prod
-  done
+  if [ "$BUCKET" == "" ] ; then
+    echo "Bucket was not provided. Specify it with --bucket argument."
+    exit 1
+  fi
 
   if ! gsutil $CRED ls gs://$BUCKET/ &> /dev/null ; then
-    echo "Could not talk to gs://bucket pypi_server_sand : do you have the authorisations?"
+    echo "Could not talk to gs://$BUCKET : do you have the authorisations?"
     exit 1
   fi
 
