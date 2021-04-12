@@ -4,7 +4,7 @@ BUCKET=""
 SKIP=""
 UPGRADE="no"
 VERSION_TO_GET=""
-PATH_TO_CRED=/media/SERVEUR/_configs/pypi_server_prod_credential.json
+PATH_TO_CRED=""
 
 while true; do
   case "$1" in
