@@ -5,20 +5,22 @@ SKIP=""
 UPGRADE="no"
 VERSION_TO_GET=""
 PATH_TO_CRED=/media/SERVEUR/_configs/pypi_server_prod_credential.json
-CRED=""
-if [ "$PATH_TO_CRED" != "" ] ; then
-  CRED="-o Credentials:gs_service_key_file=${PATH_TO_CRED}"
-fi
 
 while true; do
   case "$1" in
-BUCKET=pypi_server_prod
+    -b | --bucket) BUCKET="$2"; shift 2 ;;
+    -c | --cred) PATH_TO_CRED="$2"; shift 2 ;;
     -s | --skip) SKIP="$2"; shift 2 ;;
     -u | --upgrade) UPGRADE="yes"; shift 1 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
 done
+
+CRED=""
+if [ "$PATH_TO_CRED" != "" ] ; then
+  CRED="-o Credentials:gs_service_key_file=${PATH_TO_CRED}"
+fi
 
 COMMAND=$1
 PACKAGE=$2
