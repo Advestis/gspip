@@ -113,13 +113,8 @@ function install_from_file() {
     p=$(echo "$line" | cut -d"=" -f1)
     p=$(echo "$p" | cut -d"<" -f1)
     p=$(echo "$p" | cut -d">" -f1)
-    if [ "$(echo "$packages_on_gcs" | grep "$p")" == "" ] ; then
-      echo "Package not found on GCS"
-      return 1
-    else
-      PACKAGE="$line"
-      install
-    fi
+    PACKAGE="$line"
+    install
   done
 
 }
@@ -127,11 +122,6 @@ function install_from_file() {
 function install() {
 
   format_package
-
-  if [ "$(echo "$packages_on_gcs" | grep "$PACKAGE")" == "" ] ; then
-    echo "Package not found on GCS"
-    return 1
-  fi
 
   echo "PACKAGE_LOCATION: $PACKAGE_LOCATION"
 
@@ -142,6 +132,22 @@ function install() {
   if [ "$is_installed" == "yes" ] && [ "$UPGRADE" == "no" ] && [ "$comparator" == "" ] ; then
     echo "Requirement already satisfied: $PACKAGE ($local_version)"
     return 0
+  fi
+
+  if ! gsutil $CRED ls gs://$BUCKET/ &> /dev/null ; then
+    echo "Could not talk to gs://$BUCKET : do you have the authorisations?"
+    exit 1
+  fi
+
+  if [ "$packages_on_gcs" == "" ] ; then
+    packages_on_gcs=$(gsutil $CRED ls "gs://$BUCKET/")
+    packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
+    packages_on_gcs=${packages_on_gcs//"/"/}
+  fi
+
+  if [ "$(echo "$packages_on_gcs" | grep "$PACKAGE")" == "" ] ; then
+    echo "Package $PACKAGE not found on GCS"
+    return 1
   fi
 
   # List all version from GCS
@@ -270,15 +276,6 @@ if [ "$COMMAND" == "install" ] ; then
     echo "Bucket was not provided. Specify it with --bucket argument."
     exit 1
   fi
-
-  if ! gsutil $CRED ls gs://$BUCKET/ &> /dev/null ; then
-    echo "Could not talk to gs://$BUCKET : do you have the authorisations?"
-    exit 1
-  fi
-
-  packages_on_gcs=$(gsutil $CRED ls "gs://$BUCKET/")
-  packages_on_gcs=${packages_on_gcs//"gs://$BUCKET/"/}
-  packages_on_gcs=${packages_on_gcs//"/"/}
   if [ -f "$PACKAGE" ] ; then
     if ! install_from_file ; then exit 1 ; fi
   else
