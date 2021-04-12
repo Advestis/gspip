@@ -285,7 +285,8 @@ if [ "$COMMAND" == "install" ] ; then
     if ! install ; then exit 1 ; fi
   fi
 elif [ "$COMMAND" == "uninstall" ] || [ "$COMMAND" == "remove" ] ; then
-  uninstall
+  if ! uninstall ; then exit 1 ; fi
 else
   echo "$SKIP""Unknown command $COMMAND"
+  exit 1
 fi
