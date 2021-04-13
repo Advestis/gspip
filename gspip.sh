@@ -40,8 +40,9 @@ function gcsls() {
 }
 
 function get_version() {
+  p=${PACKAGE//"-staging"/}
   v=$1
-  v=${v//"$PACKAGE_LOCATION$PACKAGE-"/}
+  v=${v//"$PACKAGE_LOCATION$p-"/}
   v=${v//".tar.gz"/}
   echo "$SKIP""$v"
 }
@@ -248,7 +249,7 @@ function install() {
     return 0
   fi
 
-  thefile="$PACKAGE-$version_to_install.tar.gz"
+  thefile="${PACKAGE//"-staging"/}-$version_to_install.tar.gz"
 
   echo "$SKIP""Will install package $PACKAGE from $PACKAGE_LOCATION$thefile"
 
