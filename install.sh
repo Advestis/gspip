@@ -37,12 +37,15 @@ if [ "$PKG_OK" = "" ] ; then
   exit 1
 fi
 
-if ! gsutil $CRED ls gs://$BUCKET &> /dev/null ; then
+echo "Testing gsutil connection. You should see the list of buckets in the project appear..."
+echo ""
+if ! gsutil $CRED ls gs://$BUCKET ; then
   echo "Could not talk to GCS : did you specify the correct paths and buckets in the arguments of the command ?"
   echo "I currently have BUCKET=$BUCKET and PATH_TO_CRED=$PATH_TO_CRED."
   exit 1
 fi
-
+echo ""
+echo "...gsutil connection is ok"
 if [ ! -d "$HOME/bin" ] ; then
   echo "Creating $HOME/bin directory..."
   mkdir "$HOME/bin"
@@ -55,19 +58,18 @@ fi
 
 chmod +x "$SCRIPTPATH/"*
 
-if ! [ -d "$HOME/bin" ] ; then
-  echo "Creating directory $HOME/bin..."
-  mkdir "$HOME/bin"
-fi
-
-echo "Copying files to $HOME/bin..."
+echo "Copying gspip.sh to $HOME/bin/gspip ..."
 cp "$SCRIPTPATH/gspip.sh.tmp" "$HOME/bin/gspip"
 rm gspip.sh.tmp
 if [ ! -f "$HOME/bin/gspip" ] ; then
     echo "Could not copy gspip.sh to $HOME/bin"
     exit 1
 fi
-echo "  Copied gspip"
+echo "...copied gspip."
 
-echo "...successfully copied files."
-source $HOME/.profile
+echo "sourcing $HOME/.profile..."
+if ! source $HOME/.profile ; then
+  exit 1
+fi
+echo "... sourced"
+echo "Installation complete"
