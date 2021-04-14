@@ -42,6 +42,13 @@ echo ""
 if ! gsutil $CRED ls gs://$BUCKET ; then
   echo "Could not talk to GCS : did you specify the correct paths and buckets in the arguments of the command ?"
   echo "I currently have BUCKET=$BUCKET and PATH_TO_CRED=$PATH_TO_CRED."
+  echo "POSSIBLE SOLUTION : if you got the message 'CommandException: You have multiple types of configured credentials'..., run the command"
+  echo ""
+  echo "'gcloud config set pass_credentials_to_gsutil false' and retry installing gspip"
+  echo ""
+  echo "This will prevent gsutil from trying to use your gcloud credentials."
+  echo "Note that you will not be able to use gsutil without setting a .boto file or without giving a json with credentials. "
+  echo "To move files from/to GCS, you can still use TransparentPath though ;)"
   exit 1
 fi
 echo ""
