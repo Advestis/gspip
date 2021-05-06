@@ -37,7 +37,7 @@ if [ "$PKG_OK" = "" ] ; then
   exit 1
 fi
 
-if ! gsutil $CRED ls gs://$BUCKET &> /dev/null ; then
+if ! gsutil $CRED ls gs://$BUCKET ; then
   echo "Could not talk to GCS : did you specify the correct paths and buckets in the arguments of the command ?"
   echo "I currently have BUCKET=$BUCKET and PATH_TO_CRED=$PATH_TO_CRED."
   exit 1
