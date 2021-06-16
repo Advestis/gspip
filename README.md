@@ -8,7 +8,7 @@ This will install a command that works almost like pip, except that it will look
 Clone the repository, open a terminal and cd to it. Then run
 ```
 chmod +x ./install.sh
-./install.sh
+./install.sh BUCKET_NAME PATH_TO_CRED_JSON
 ```
 This will copy gspip.sh into your $HOME/bin directory under the name gspip
 
