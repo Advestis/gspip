@@ -271,6 +271,7 @@ function install() {
         echo "No file downloaded!"
         return 1
     fi
+    pip install wheel
     pip install "/tmp/$thefile"
     rm "/tmp/$thefile"
 }
